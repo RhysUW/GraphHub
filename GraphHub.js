@@ -35,17 +35,20 @@ let context = canvas.getContext("2d");
 let nodes = [];
 let nodesData = []; //for displaying the vertexs
 let edges = [];
+let edgesData = [];
 let current_node_index = null;
 let isDragging = false;
 let startX;
 let startY;
 let counter = 0;
 
-let startVertex;
-let endVertex;
+let confirmed = false;
+let startNode = null;
+let endNode = null;
 
 //initializing pre outputs for tracking nodes and edges
 document.getElementById("nodes").textContent = JSON.stringify(nodesData, null, 2);
+document.getElementById("edges").textContent = JSON.stringify(edgesData);
 
 
 //function to calculate if the mouse is inside a node when clicked
@@ -60,7 +63,7 @@ let is_mouse_in_node = function(mouseX, mouseY, circleX, circleY, circleRadius){
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 //function for detecting if a node is being clicked/dragged for movement
-canvas.onmousedown = function(event){
+let originalDown = canvas.onmousedown = function(event){
     event.preventDefault();
     console.log(event);
 
@@ -73,8 +76,6 @@ canvas.onmousedown = function(event){
 
     let index = 0;
     for(let node of nodes){
-        //console.log(node.x);
-        //console.log(node.y);
         if(is_mouse_in_node(startX, startY, node.x, node.y, node.radius)){
             //console.log('yes');
             current_node_index = index;
@@ -90,7 +91,7 @@ canvas.onmousedown = function(event){
     }
 }
 
-canvas.onmouseup = function(event){
+let originalUp = canvas.onmouseup = function(event){
     if(!isDragging){
         return;
     }
@@ -98,7 +99,7 @@ canvas.onmouseup = function(event){
     isDragging = false;
 }
 
-canvas.onmouseout = function(event){
+let originalOut = canvas.onmouseout = function(event){
     if(!isDragging){
         return;
     }
@@ -106,7 +107,7 @@ canvas.onmouseout = function(event){
     isDragging = false;
 }
 
-canvas.onmousemove = function(event){
+let originalMove = canvas.onmousemove = function(event){
     if(!isDragging){
         return;
     }else{
@@ -132,6 +133,14 @@ canvas.onmousemove = function(event){
     }
 }
 
+//used for after an edge is drawn so vertices can be moved again
+function restoreHandlers(){
+    canvas.onmousedown = originalDown;
+    canvas.onmouseup = originalUp;
+    canvas.onmouseout = originalOut;
+    canvas.onmousemove = originalMove;
+}
+
 
 
 //logic for pressing add vertex button
@@ -153,6 +162,7 @@ function add(event){
     counter++;
 }
 
+//draws a vertex on the canvas
 function drawNode(node){
     context.beginPath();
     context.strokeStyle = "black";
@@ -168,58 +178,75 @@ function drawNode(node){
     context.fillText(node.data, node.x, node.y)
 }
 
+//logic for when add edge button is pressed
 function newEdge(event){
-    if(confirm("select nodes to add new adges") == true){
-
-        let startNode = null;
+    confirmed = confirm("select nodes to add new adges")
+    if(confirmed){
 
         canvas.onmousedown = function(event){
             event.preventDefault();
 
-            const rect = getBoundingClientRect();
+            const rect = canvas.getBoundingClientRect();
             startX = event.clientX - rect.left;
             startY = event.clientY - rect.top;
 
             for(let node of nodes){
                 if(is_mouse_in_node(startX, startY, node.x, node.y, node.radius)){
                 startNode = node;
+                console.log(startNode)
                 break;
                 }
             } 
 
             if(startNode){
-                canvas.onmousemove = function(moveEvent){
+                canvas.onmousedown = function(moveEvent){
                     moveEvent.preventDefault();
 
-                    context.clearRect(0, 0, canvas.weidth, canvas.height);
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    //redraw all nodes
                     for(let node of nodes){
                         drawNode(node);
                     }
 
-                    //optionally here redraw existin edges here if we want them visable
+                    //redraw all previous edges
+                    if(edges){  
+                        for(let edge of edges){
+                            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y);
+                        }
+                    }
+                    
 
                     const moveRect = canvas.getBoundingClientRect();
                     let currentX = moveEvent.clientX - moveRect.left;
                     let currentY = moveEvent.clientY - moveRect.top;
 
-                    drawEdge(startNode.x, startNode.y, currentX, currentY);
-
+                    //making sure edge is only drawn if another vertice is clicked
+                    for(let node of nodes){
+                        if(is_mouse_in_node(currentX, currentY, node.x, node.y, node.radius)){
+                            endNode = node;
+                            let edge1 = new Edge(startNode, endNode, false, 0);
+                            edges.push(edge1);
+                            edgesData.push('[' + edge1.startV.data + ', ' + edge1.endV.data + ']');
+                            document.getElementById("edges").textContent = JSON.stringify(edgesData);
+                            drawEdge(startNode.x, startNode.y, currentX, currentY);
+                            confirmed = false;
+                            restoreHandlers();
+                        }
+                    }
                 };
             }
         };
-        canvas.onmouseup = function(event){
-            canvas.onmousemove = null;
-        }
     }else{
         return;
     }
 }
 
+//function draws the edge on the canvas
 function drawEdge(startX, startY, endX, endY){
     context.beginPath();
     context.moveTo(startX, startY);
-    context.LineTo(endX, endY);
-    context.strokeStyle = "balck";
+    context.lineTo(endX, endY);
+    context.strokeStyle = "black";
     context.lineWidth = 2;
     context.stroke();
     context.closePath();
@@ -229,10 +256,15 @@ function drawEdge(startX, startY, endX, endY){
 function clearCanvas(event) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     nodes.length = 0;
+    edges.length = 0;
+    nodesData.length = 0;
+    edgesData.length = 0;
     counter = 0;
-    document.getElementById("nodes").textContent = JSON.stringify(nodesData);
+    document.getElementById("nodes").textContent = "";
+    document.getElementById("edges").textContent = "";
 }
 
 addVertex.addEventListener("click", add);
 addEdge.addEventListener("click", newEdge);
 clear.addEventListener("click", clearCanvas);
+
