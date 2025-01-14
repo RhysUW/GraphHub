@@ -30,8 +30,10 @@ let clear = document.getElementById("clearButton");
 let canvas = document.getElementById("graphDisplay");
 let context = canvas.getContext("2d");
 
+
 //global variables
 let nodes = [];
+let nodesData = []; //for displaying the vertexs
 let edges = [];
 let current_node_index = null;
 let isDragging = false;
@@ -41,6 +43,10 @@ let counter = 0;
 
 let startVertex;
 let endVertex;
+
+//initializing pre outputs for tracking nodes and edges
+document.getElementById("nodes").textContent = JSON.stringify(nodesData, null, 2);
+
 
 //function to calculate if the mouse is inside a node when clicked
 let is_mouse_in_node = function(mouseX, mouseY, circleX, circleY, circleRadius){
@@ -139,6 +145,8 @@ function add(event){
     let node = new Node(counter, centerX, centerY, radius);
 
     nodes.push(node);
+    nodesData.push(node.data);
+    document.getElementById("nodes").textContent = JSON.stringify(nodesData);
     console.log(nodes)
     drawNode(node);
     
@@ -161,7 +169,60 @@ function drawNode(node){
 }
 
 function newEdge(event){
+    if(confirm("select nodes to add new adges") == true){
 
+        let startNode = null;
+
+        canvas.onmousedown = function(event){
+            event.preventDefault();
+
+            const rect = getBoundingClientRect();
+            startX = event.clientX - rect.left;
+            startY = event.clientY - rect.top;
+
+            for(let node of nodes){
+                if(is_mouse_in_node(startX, startY, node.x, node.y, node.radius)){
+                startNode = node;
+                break;
+                }
+            } 
+
+            if(startNode){
+                canvas.onmousemove = function(moveEvent){
+                    moveEvent.preventDefault();
+
+                    context.clearRect(0, 0, canvas.weidth, canvas.height);
+                    for(let node of nodes){
+                        drawNode(node);
+                    }
+
+                    //optionally here redraw existin edges here if we want them visable
+
+                    const moveRect = canvas.getBoundingClientRect();
+                    let currentX = moveEvent.clientX - moveRect.left;
+                    let currentY = moveEvent.clientY - moveRect.top;
+
+                    drawEdge(startNode.x, startNode.y, currentX, currentY);
+
+                };
+            }
+        };
+        canvas.onmouseup = function(event){
+            canvas.onmousemove = null;
+        }
+    }else{
+        return;
+    }
+}
+
+function drawEdge(startX, startY, endX, endY){
+    context.beginPath();
+    context.moveTo(startX, startY);
+    context.LineTo(endX, endY);
+    context.strokeStyle = "balck";
+    context.lineWidth = 2;
+    context.stroke();
+    context.closePath();
 }
 
 //logic for pressing clear Graph button
@@ -169,9 +230,9 @@ function clearCanvas(event) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     nodes.length = 0;
     counter = 0;
+    document.getElementById("nodes").textContent = JSON.stringify(nodesData);
 }
 
 addVertex.addEventListener("click", add);
-addEdge.addEventListener("click", newEdge)
+addEdge.addEventListener("click", newEdge);
 clear.addEventListener("click", clearCanvas);
-

@@ -58,4 +58,23 @@ body{
     background-color: white;
 }
 
+.outputContainer{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
 
+.output{
+    font: medium;
+    height: 25px;
+    width: 400px;
+    background-color: white;
+    border: 3px solid black;
+    display: flex;
+    align-items: center;
+    
+    overflow: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
