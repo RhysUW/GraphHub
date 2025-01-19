@@ -28,6 +28,7 @@ let addVertex = document.getElementById("addButton");
 let addEdge = document.getElementById("edgeButton");
 let clear = document.getElementById("clearButton");
 let depthFirst = document.getElementById("depthFirst");
+let breadthFirst = document.getElementById("bfs");
 
 //initializing canvas for displaying graph
 let canvas = document.getElementById("graphDisplay");
@@ -132,7 +133,7 @@ let originalMove = canvas.onmousemove = function(event){
           }
         
         for (let edge of edges) {
-            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y);                            //this needs to be finished redrawing edges after a node is moved
+            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);                            //this needs to be finished redrawing edges after a node is moved
         }
 
         startX = mouseX;
@@ -218,7 +219,7 @@ function newEdge(event){
                     //redraw all previous edges
                     if(edges){  
                         for(let edge of edges){
-                            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y);
+                            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);
                         }
                     }
                     
@@ -249,10 +250,21 @@ function newEdge(event){
 }
 
 //function draws the edge on the canvas
-function drawEdge(startX, startY, endX, endY, radius){
+function drawEdge(startX, startY, endX, endY, radius) {
+    // Calculate the angle between the start and end points
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const angle = Math.atan2(dy, dx);
+
+    // Adjust the start and end points to be on the edges of the circles
+    const startXAdjusted = startX + radius * Math.cos(angle);
+    const startYAdjusted = startY + radius * Math.sin(angle);
+    const endXAdjusted = endX - radius * Math.cos(angle);
+    const endYAdjusted = endY - radius * Math.sin(angle);
+
     context.beginPath();
-    context.moveTo(startX, startY);
-    context.lineTo(endX, endY);
+    context.moveTo(startXAdjusted, startYAdjusted);
+    context.lineTo(endXAdjusted, endYAdjusted);
     context.strokeStyle = "black";
     context.lineWidth = 2;
     context.stroke();
@@ -290,9 +302,19 @@ function highlightEdge(startNode, endNode) {
         if ((edge.startV === startNode && edge.endV === endNode) ||
             (!edge.directed && edge.startV === endNode && edge.endV === startNode)) {
             
+
+            const dx = endNode.x - startNode.x;
+            const dy = endNode.y - startNode.y;
+            const angle = Math.atan2(dy, dx);
+
+            const startXAdjusted = startNode.x + startNode.radius * Math.cos(angle);
+            const startYAdjusted = startNode.y + startNode.radius * Math.sin(angle);
+            const endXAdjusted = endNode.x - endNode.radius * Math.cos(angle);
+            const endYAdjusted = endNode.y - endNode.radius * Math.sin(angle);
+
             context.beginPath();
-            context.moveTo(startNode.x, startNode.y);
-            context.lineTo(endNode.x, endNode.y);
+            context.moveTo(startXAdjusted, startYAdjusted);
+            context.lineTo(endXAdjusted, endYAdjusted);
             context.strokeStyle = "red";
             context.lineWidth = 3; 
             context.stroke();
@@ -328,7 +350,7 @@ function depthFirstSearch(event) {
         drawNode(node);
     }
     for (let edge of edges) {
-        drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y);
+        drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);
     }
 
     if (nodes.length > 0) {
@@ -339,9 +361,55 @@ function depthFirstSearch(event) {
     alert("DFS Traversal Order: " + result.join(" -> "));
 }
 
+function bfsTraversal(node, visited, result){
+    if(!node){
+        return;
+    }
+
+    let queue = [];
+    queue.push(node);
+    visited.add(node);
+    result.push(node.data);
+
+    while(queue.length > 0){
+        let current_node = queue.shift();
+
+        for(let neighbor of current_node.adjecencyList){
+            if(!visited.has(neighbor)){
+                visited.add(neighbor);
+                result.push(neighbor.data);
+
+                highlightEdge(current_node, neighbor);
+                queue.push(neighbor);
+            }
+        }
+    }
+}
+
+function breadthFirstSearch(event){
+    initAdjecencyList();
+    let visited = new Set();
+    let result = [];
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    for (let node of nodes) {
+        drawNode(node);
+    }
+    for (let edge of edges) {
+        drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);
+    }
+
+    if(nodes.length > 0){
+        bfsTraversal(nodes[0], visited, result);
+    }
+
+    alert("BFS Traversal Order: " + result.join(" -> "));
+}
+
 
 addVertex.addEventListener("click", add);
 addEdge.addEventListener("click", newEdge);
 clear.addEventListener("click", clearCanvas);
 depthFirst.addEventListener("click", depthFirstSearch);
+breadthFirst.addEventListener("click", breadthFirstSearch);
 
