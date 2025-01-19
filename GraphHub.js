@@ -131,8 +131,8 @@ let originalMove = canvas.onmousemove = function(event){
             drawNode(n);
           }
         
-        for (let e of edges) {
-            drawEdge();                            //this needs to be finished redrawing edges after a node is moved
+        for (let edge of edges) {
+            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y);                            //this needs to be finished redrawing edges after a node is moved
         }
 
         startX = mouseX;
