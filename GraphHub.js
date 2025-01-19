@@ -7,6 +7,8 @@ class Node {
         this.x = x,
         this.y = y;
         this.radius = radius;
+        this.visited = false;
+        this.adjecencyList = [];
     }
 }
 
@@ -25,6 +27,7 @@ class Edge{
 let addVertex = document.getElementById("addButton");
 let addEdge = document.getElementById("edgeButton");
 let clear = document.getElementById("clearButton");
+let depthFirst = document.getElementById("depthFirst");
 
 //initializing canvas for displaying graph
 let canvas = document.getElementById("graphDisplay");
@@ -127,6 +130,10 @@ let originalMove = canvas.onmousemove = function(event){
         for (let n of nodes) {
             drawNode(n);
           }
+        
+        for (let e of edges) {
+            drawEdge();                            //this needs to be finished redrawing edges after a node is moved
+        }
 
         startX = mouseX;
         startY = mouseY;
@@ -228,7 +235,7 @@ function newEdge(event){
                             edges.push(edge1);
                             edgesData.push('[' + edge1.startV.data + ', ' + edge1.endV.data + ']');
                             document.getElementById("edges").textContent = JSON.stringify(edgesData);
-                            drawEdge(startNode.x, startNode.y, currentX, currentY);
+                            drawEdge(startNode.x, startNode.y, currentX, currentY, node.radius);
                             confirmed = false;
                             restoreHandlers();
                         }
@@ -242,7 +249,7 @@ function newEdge(event){
 }
 
 //function draws the edge on the canvas
-function drawEdge(startX, startY, endX, endY){
+function drawEdge(startX, startY, endX, endY, radius){
     context.beginPath();
     context.moveTo(startX, startY);
     context.lineTo(endX, endY);
@@ -264,7 +271,77 @@ function clearCanvas(event) {
     document.getElementById("edges").textContent = "";
 }
 
+function initAdjecencyList(){
+    nodes.forEach(node => node.adjecencyList = []);
+    for(let edge of edges){
+        edge.startV.adjecencyList.push(edge.endV);
+        if(!edge.directed){
+            edge.endV.adjecencyList.push(edge.startV);
+        }
+    }
+
+    nodes.forEach(node => {
+        node.adjecencyList.sort((a, b) => a.data - b.data);
+    });
+}
+
+function highlightEdge(startNode, endNode) {
+    for (let edge of edges) {
+        if ((edge.startV === startNode && edge.endV === endNode) ||
+            (!edge.directed && edge.startV === endNode && edge.endV === startNode)) {
+            
+            context.beginPath();
+            context.moveTo(startNode.x, startNode.y);
+            context.lineTo(endNode.x, endNode.y);
+            context.strokeStyle = "red";
+            context.lineWidth = 3; 
+            context.stroke();
+            context.closePath();
+            break;
+        }
+    }
+}
+
+function dfsTraversal(node, visited, result){
+    if(!node || visited.has(node)){
+        return;
+    }
+
+    visited.add(node);
+    result.push(node.data);
+
+    for(let neighbor of node.adjecencyList){
+        if(!visited.has(neighbor)){
+            highlightEdge(node, neighbor);
+            dfsTraversal(neighbor, visited, result);
+        }
+    }
+}
+
+function depthFirstSearch(event) {
+    initAdjecencyList(); 
+    let visited = new Set();
+    let result = [];
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    for (let node of nodes) {
+        drawNode(node);
+    }
+    for (let edge of edges) {
+        drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y);
+    }
+
+    if (nodes.length > 0) {
+        dfsTraversal(nodes[0], visited, result);
+    }
+
+    console.log("DFS Result: ", result); 
+    alert("DFS Traversal Order: " + result.join(" -> "));
+}
+
+
 addVertex.addEventListener("click", add);
 addEdge.addEventListener("click", newEdge);
 clear.addEventListener("click", clearCanvas);
+depthFirst.addEventListener("click", depthFirstSearch);
 
