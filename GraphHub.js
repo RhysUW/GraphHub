@@ -29,6 +29,8 @@ let addEdge = document.getElementById("edgeButton");
 let clear = document.getElementById("clearButton");
 let depthFirst = document.getElementById("depthFirst");
 let breadthFirst = document.getElementById("bfs");
+let topoSort = document.getElementById("topoSort");
+let toggleInput = document.querySelector('#toggleDiv input[type="checkbox"]');
 
 //initializing canvas for displaying graph
 let canvas = document.getElementById("graphDisplay");
@@ -45,6 +47,7 @@ let isDragging = false;
 let startX;
 let startY;
 let counter = 0;
+let isDirectedGraph = false;
 
 let confirmed = false;
 let startNode = null;
@@ -133,7 +136,11 @@ let originalMove = canvas.onmousemove = function(event){
           }
         
         for (let edge of edges) {
-            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);                            //this needs to be finished redrawing edges after a node is moved
+            if(!isDirectedGraph){
+                drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);
+            }else{
+                drawDirectedEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);
+            }
         }
 
         startX = mouseX;
@@ -232,7 +239,7 @@ function newEdge(event){
                     for(let node of nodes){
                         if(is_mouse_in_node(currentX, currentY, node.x, node.y, node.radius)){
                             endNode = node;
-                            let edge1 = new Edge(startNode, endNode, false, 0);
+                            let edge1 = new Edge(startNode, endNode, isDirectedGraph, 0);
                             edges.push(edge1);
                             edgesData.push('[' + edge1.startV.data + ', ' + edge1.endV.data + ']');
                             document.getElementById("edges").textContent = JSON.stringify(edgesData);
@@ -406,10 +413,60 @@ function breadthFirstSearch(event){
     alert("BFS Traversal Order: " + result.join(" -> "));
 }
 
+function drawDirectedEdge(startX, startY, endX, endY, radius) {
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const angle = Math.atan2(dy, dx);
+
+    const startXAdjusted = startX + radius * Math.cos(angle);
+    const startYAdjusted = startY + radius * Math.sin(angle);
+    const endXAdjusted = endX - radius * Math.cos(angle);
+    const endYAdjusted = endY - radius * Math.sin(angle);
+
+    context.beginPath();
+    context.moveTo(startXAdjusted, startYAdjusted);
+    context.lineTo(endXAdjusted, endYAdjusted);
+    context.strokeStyle = "black";
+    context.lineWidth = 2;
+    context.stroke();
+    context.closePath();
+
+    const arrowLength = 10;
+    const arrowAngle = Math.PI / 8;
+    context.beginPath();
+    context.moveTo(endXAdjusted, endYAdjusted);
+    context.lineTo(endXAdjusted - arrowLength * Math.cos(angle - arrowAngle), endYAdjusted - arrowLength * Math.sin(angle - arrowAngle));
+    context.lineTo(endXAdjusted - arrowLength * Math.cos(angle + arrowAngle), endYAdjusted - arrowLength * Math.sin(angle + arrowAngle));
+    context.lineTo(endXAdjusted, endYAdjusted);
+    context.fillStyle = "black";
+    context.fill();
+    context.closePath();
+}
+
+toggleInput.addEventListener('change', () => {
+    isDirectedGraph = !toggleInput.checked;
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    nodes.forEach(n => drawNode(n));
+    edges.forEach(edge => {
+        if(isDirectedGraph){
+            drawDirectedEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius);
+        }else{
+            drawEdge(edge.startV.x, edge.startV.y, edge.endV.x, edge.endV.y, edge.startV.radius)
+        }
+    })
+})
+
+function topologicalSort(event){
+    initAdjecencyList();
+    
+}
+
 
 addVertex.addEventListener("click", add);
 addEdge.addEventListener("click", newEdge);
 clear.addEventListener("click", clearCanvas);
 depthFirst.addEventListener("click", depthFirstSearch);
 breadthFirst.addEventListener("click", breadthFirstSearch);
+topoSort.addEventListener("click", topologicalSort);
 
