@@ -47,7 +47,7 @@ let isDragging = false;
 let startX;
 let startY;
 let counter = 0;
-let isDirectedGraph = false;
+let isDirectedGraph = true;
 
 let confirmed = false;
 let startNode = null;
@@ -458,8 +458,43 @@ toggleInput.addEventListener('change', () => {
 })
 
 function topologicalSort(event){
-    initAdjecencyList();
-    
+    if(isDirectedGraph){
+        initAdjecencyList();
+
+        inDegree = {};
+        topoOrder = [];
+        for(let v in nodes){
+            inDegree[v] = 0;
+        }
+
+        for(let v in nodes){
+            nodes[v].forEach(neighbor => {
+                inDegree[neighbor]++;
+            })
+        }
+
+        let queue = [];
+        for(let v in inDegree){
+            if(inDegree[v] == 0){
+                queue.push(v);
+            }
+        }
+
+        while(queue.length > 0){
+            let currentNode = queue.shift();
+            topoOrder.push(currentNode.data);
+
+            nodes.forEach(neighbor => {
+                inDegree[neighbor]--;
+                if(inDegree[neighbor] ==0){
+                    queue.push(neighbor);
+                }
+            })
+        }
+        console.log(topoOrder);
+    }else{
+        alert("Graph must be directed in order to have a topological ordering!");
+    }
 }
 
 
